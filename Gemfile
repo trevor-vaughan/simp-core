@@ -29,7 +29,7 @@ gem 'simp-build-helpers', '>=0.1.0'
 gem 'parallel'
 gem 'dotenv'
 gem 'ruby-progressbar'
-gem 'librarian-puppet-pr328', '>=2.2.3'
+gem 'r10k'
 
 # nice-to-have gems (for debugging)
 group :debug do
