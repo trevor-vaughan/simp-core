@@ -63,6 +63,7 @@ cp puppet.conf %{buildroot}/%{prefix}/puppet.conf.rpmnew
 %config(noreplace) %{prefix}/auth.conf.simp
 %config(noreplace) %{prefix}/autosign.conf
 %config(noreplace) %{prefix}/hiera.yaml
+%config(noreplace) %{prefix}/environments/environment.conf
 %config(noreplace) %{prefix}/environments/simp/hieradata/RedHat/6.yaml
 %config(noreplace) %{prefix}/environments/simp/hieradata/hosts/puppet.your.domain.yaml
 %config(noreplace) %{prefix}/environments/simp/hieradata/simp/logstash/default.yaml
@@ -298,6 +299,10 @@ fi
 # Post uninstall stuff
 
 %changelog
+* Tue Jun 14 2016 Trevor Vaughan <tvaughan@onyxpoint.com> - 5.3.0-0
+- Added an environment.conf to provide support for the new `site_files`
+  artifact module space.
+
 * Mon Apr 25 2016 Chris Tessmer <chris.tessmer@onyxpoint.com> - 5.2.1-5
 - Required 'sudo' to resolve ordering race that overwrote '/etc/sudoers'.
 
