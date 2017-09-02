@@ -49,19 +49,19 @@ describe 'RPM build' do
     end
 
     it 'should be able to build all modules without issue' do
-      on(host, "#{run_cmd} 'cd /simp-core; rake pkg:modules'")
+      on(host, "#{run_cmd} 'cd /simp-core; bundle exec rake pkg:modules'")
     end
 
     it 'should be able to build simp without issue' do
-      on(host, "#{run_cmd} 'cd /simp-core; rake pkg:simp'")
+      on(host, "#{run_cmd} 'cd /simp-core; bundle exec rake pkg:simp'")
     end
 
     it 'should be able to build simp_cli without issue' do
-      on(host, "#{run_cmd} 'cd /simp-core; rake pkg:simp_cli'")
+      on(host, "#{run_cmd} 'cd /simp-core; bundle exec rake pkg:simp_cli'")
     end
 
     it 'should be able to build aux packages without issue' do
-      on(host, "#{run_cmd} 'cd /simp-core; rake pkg:aux'")
+      on(host, "#{run_cmd} 'cd /simp-core; bundle exec rake pkg:aux'")
     end
   end
 end
