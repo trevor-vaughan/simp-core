@@ -61,7 +61,11 @@ jobs:
         - bundle
       script:
         - bundle exec rake deps:checkout
-        - FAIL_OK=true bundle exec rake beaker:suites[rpm_docker]
+        - FAIL_OK=true bundle exec rake beaker:suites[rpm_docker,travis_ci]
+      matrix:
+        fast_finish: true
+        allow_failures:
+          - env: FAIL_OK=true
 
 before_deploy:
   - 'bundle exec rake metadata_lint'

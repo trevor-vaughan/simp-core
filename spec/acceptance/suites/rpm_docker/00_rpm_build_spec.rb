@@ -20,6 +20,20 @@ describe 'RPM build' do
   hosts.each do |host|
     next if host[:roles].include?('disabled')
 
+    it 'should clone the repo if necessary' do
+      unless host.file_exist?('/simp-core/metadata.json')
+        # Handle Travis CI first
+        if ENV['TRAVIS_BUILD_DIR']
+          %x(docker cp #{ENV['TRAVIS_BUILD_DIR']} #{host.name}:/simp-core)
+        else
+          # Just clone the main simp repo
+          on(host, %(git clone https://github.com/simp/simp-core /simp-core))
+        end
+
+        on(host, %(chown -R #{build_user}:#{build_user} /simp-core))
+      end
+    end
+
     it 'should have access to the local simp-core' do
       host.file_exist?('/simp-core/metadata.json')
     end
