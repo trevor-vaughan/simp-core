@@ -12,6 +12,12 @@ language: ruby
 sudo: required
 cache: bundler
 
+notifications:
+  email: false
+
+services:
+  - docker
+
 before_script:
   - bundle
 
@@ -26,12 +32,18 @@ script:
   - bundle exec rake metadata_lint
   - bundle exec rake spec
 
-notifications:
-  email: false
-
 rvm:
   - 2.1.9
 
+jobs:
+  include:
+    - stage: package
+      rvm: 2.1.9
+      env:
+        - PUPPET_VERSION"~> 4.8.2"
+      script:
+        - bundle exec rake deps:checkout
+        - FAIL_OK=true bundle exec rake beaker:suites[rpm_docker]
 env:
   global:
     - STRICT_VARIABLES=yes
@@ -42,6 +54,8 @@ env:
 
 matrix:
   fast_finish: true
+  allow_failures:
+    - env: FAIL_OK=true
 
 before_deploy:
   - 'bundle exec rake metadata_lint'

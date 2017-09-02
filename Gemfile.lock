@@ -470,13 +470,13 @@ DEPENDENCIES
   parallel
   pry
   pry-doc
-  puppet (= 4.8.2)
+  puppet (~> 4)
   puppet-lint
   puppet-strings
   puppetlabs_spec_helper
   rake
   ruby-progressbar
-  simp-beaker-helpers (~> 1.5)
+  simp-beaker-helpers (~> 1.7)
   simp-build-helpers (>= 0.1.0)
   simp-rake-helpers (~> 4.0)
 
