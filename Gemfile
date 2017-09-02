@@ -30,7 +30,8 @@ gem 'puppetlabs_spec_helper'
 gem 'rake'
 gem 'ruby-progressbar'
 gem 'simp-build-helpers', ENV.fetch('SIMP_RAKE_HELPERS_VERSION', '>=0.1.0')
-gem 'simp-rake-helpers', ENV.fetch('SIMP_RAKE_HELPERS_VERSION', '~> 4.0')
+#gem 'simp-rake-helpers', ENV.fetch('SIMP_RAKE_HELPERS_VERSION', '~> 4.0')
+gem 'simp-rake-helpers', :git => 'https://github.com/trevor-vaughan/rubygem-simp-rake-helpers', :branch => 'rebuild'
 
 group :system_tests do
   gem 'beaker'

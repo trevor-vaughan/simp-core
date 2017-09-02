@@ -24,7 +24,12 @@ describe 'RPM build' do
       unless host.file_exist?('/simp-core/metadata.json')
         # Handle Travis CI first
         if ENV['TRAVIS_BUILD_DIR']
+          base_dir = File.dirname(ENV['TRAVIS_BUILD_DIR'])
+
           %x(docker cp #{ENV['TRAVIS_BUILD_DIR']} #{host.name}:/simp-core)
+
+          on(host, %(mkdir -p #{base_dir}))
+          on(host, %(cd #{base_dir}; ln -s /simp-core .))
         else
           # Just clone the main simp repo
           on(host, %(git clone https://github.com/simp/simp-core /simp-core))
