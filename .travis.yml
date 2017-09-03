@@ -9,6 +9,9 @@
 ---
 language: ruby
 cache: bundler
+sudo: false
+
+bundler_args: --without development system_tests
 
 notifications:
   email: false
@@ -18,28 +21,23 @@ addons:
     packages:
       - rpm
 
+before_install:
+  - rm -f Gemfile.lock
+
 jobs:
-
-  fast_finish: true
-
   allow_failures:
-    - env: PUPPET_VERSION"~> 5.0"
+    - env: STRICT_VARIABLES=yes TRUSTED_NODE_DATA=yes PUPPET_VERSION="~> 5.0"
     - stage: package
       env: PUPPET_VERSION"~> 4.8.2"
 
   include:
+    - stage: precache
+      rvm: 2.1.9
+      script: true
+
     - stage: spec
-      sudo: false
-      rvm:
-        - 2.1.9
-      env:
-        - STRICT_VARIABLES=yes
-        - TRUSTED_NODE_DATA=yes
-        - PUPPET_VERSION="~> 4.8.2" FORGE_PUBLISH=true
-      before_install:
-        - rm Gemfile.lock || true
-      before_script:
-        - bundle
+      rvm: 2.1.9
+      env: STRICT_VARIABLES=yes TRUSTED_NODE_DATA=yes PUPPET_VERSION="~> 4.8.2"
       script:
         - bundle exec rake metadata_lint
         - bundle exec rake spec
@@ -55,53 +53,35 @@ jobs:
           on:
             tags: true
             rvm: 2.1.9
-            condition: '($SKIP_FORGE_PUBLISH != true) && ($FORGE_PUBLISH = true)'
+            condition: '($SKIP_FORGE_PUBLISH != true)'
         - provider: releases
           api_key:
               secure: "j4c1OwPY+SRpzc36pXXvBIl7VZ8GsQm5rX5KD980GkZKU9UlpgMg1thUHVG+tkpkndJvqjMQPfXrmX96p6UN2esFX3bL8BzTRbOD+Die/WyCZ5AnHbtI5x8uRYL9PVj0G6YeDtIwgvPm04TjegewfsyuBBkzxEOt+4CITDrUmuDQbRyHRnSHKbACMkck2canaCyHiwNHz6soZpjeAvNzEgjDwWIwWhLueE629kMdy4KGTFUrEiaYWC9eCj2Ic+aD1wvBCaiYt6m5DYdAprraZU9znmJGbzp+06MNHHahAdnLARvNRhp01I1Op2CusH6B9GwdPY26TJm2kRI0JGqdwUJb93fnDlgdbDzFYGtJsjIphM4STP/HWvRl8CWnTOwRGYZGGlC54r5TGqNKA3UlNBkpnPe6jOLLhd+8wyZ5P9WV6w9FntWEXYplGJcsHsgpreIsvKghiFmrFLoMAabbc6/cS2CseJ30uLGCROPILLuWSEYKV5iOG4lZMJPwZhwR4ndFjMyt4YYwTzNpZiCPDrCIKH5EtuZXTsN6zpa3nRvl0v8Lm/UF6OQxXacbCMv5af6h58YwZMX2t7ZfmJqQwQDnaFQyLC8+QZT2KUCyFsLGHS60yPFI0bBjXPMIvpvacjqCX6tyNguFkFfUBhanh5uqXjLpWTakacaX/5q5W4s="
           skip_cleanup: true
           on:
             tags: true
-            condition: '($SKIP_FORGE_PUBLISH != true) && ($FORGE_PUBLISH = true)'
+            condition: '($SKIP_FORGE_PUBLISH != true)'
 
     - stage: spec
-      sudo: false
-      rvm:
-        - 2.1.9
-      env:
-        - STRICT_VARIABLES=yes
-        - TRUSTED_NODE_DATA=yes
-        - PUPPET_VERSION="~> 4.7.0"
-      before_install:
-        - rm Gemfile.lock || true
-      before_script:
-        - bundle
+      rvm: 2.1.9
+      env: STRICT_VARIABLES=yes TRUSTED_NODE_DATA=yes PUPPET_VERSION="~> 5.0"
       script:
         - bundle exec rake metadata_lint
         - bundle exec rake spec
 
     - stage: spec
-      sudo: false
-      rvm:
-        - 2.1.9
-      env:
-        - STRICT_VARIABLES=yes
-        - TRUSTED_NODE_DATA=yes
-        - PUPPET_VERSION="~> 5.0"
-      before_install:
-        - rm Gemfile.lock || true
-      before_script:
-        - bundle
+      rvm: 2.1.9
+      env: STRICT_VARIABLES=yes TRUSTED_NODE_DATA=yes PUPPET_VERSION="~> 4.7.0"
       script:
         - bundle exec rake metadata_lint
         - bundle exec rake spec
 
     - stage: package
       sudo: required
+      rvm: 2.1.9
       services:
         - docker
       script:
         - bundle exec rake deps:checkout
         - bundle exec rake beaker:suites[rpm_docker,travis_ci]
-      env:
-        - PUPPET_VERSION"~> 4.8.2"
+      env: PUPPET_VERSION"~> 4.8.2"
