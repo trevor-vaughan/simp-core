@@ -11,7 +11,7 @@ if File.file?(gemfile_path)
 end
 
 describe 'RPM build' do
-  let(:simp_core_dir) { File.expand_path(File.join(fixtures_path, '..', '..')) }
+  let(:local_basedir) { File.absolute_path(File.join(fixtures_path, '..', '..')) }
 
   # We need a normal user for building the RPMs
   let(:build_user) { 'build_user' }
@@ -28,7 +28,7 @@ describe 'RPM build' do
 
           %x(docker cp #{ENV['TRAVIS_BUILD_DIR']} #{host.name}:/simp-core)
 
-          on(host, %(mkdir -p #{base_dir}))
+          host.mkdir_p(base_dir)
           on(host, %(cd #{base_dir}; ln -s /simp-core .))
         else
           # Just clone the main simp repo
@@ -40,7 +40,15 @@ describe 'RPM build' do
     end
 
     it 'should have access to the local simp-core' do
-      host.file_exist?('/simp-core/metadata.json')
+
+      # This is to work around irritating artifacts left around by r10k
+      unless local_basedir == '/simp-core'
+        host.mkdir_p(File.dirname(local_basedir))
+
+        on(host, %(cd #{File.dirname(local_basedir)}; ln -s /simp-core #{File.basename(local_basedir)}))
+      end
+
+      host.file_exist?("#{local_basedir}/metadata.json")
     end
 
     it 'should align the build user uid and gid with the mounted filesystem' do
@@ -50,23 +58,23 @@ describe 'RPM build' do
     end
 
     it 'should have the latest gems' do
-      on(host, "#{run_cmd} 'cd /simp-core; bundle update'")
+      on(host, "#{run_cmd} 'cd #{local_basedir}; bundle update'")
     end
 
     it 'should be able to build all modules ' do
-      on(host, "#{run_cmd} 'cd /simp-core; bundle exec rake pkg:modules'")
+      on(host, "#{run_cmd} 'cd #{local_basedir}; bundle exec rake pkg:modules'")
     end
 
     it 'should be able to build simp ' do
-      on(host, "#{run_cmd} 'cd /simp-core; bundle exec rake pkg:simp'")
+      on(host, "#{run_cmd} 'cd #{local_basedir}; bundle exec rake pkg:simp'")
     end
 
     it 'should be able to build simp_cli ' do
-      on(host, "#{run_cmd} 'cd /simp-core; bundle exec rake pkg:simp_cli'")
+      on(host, "#{run_cmd} 'cd #{local_basedir}; bundle exec rake pkg:simp_cli'")
     end
 
     it 'should be able to build aux packages ' do
-      on(host, "#{run_cmd} 'cd /simp-core; bundle exec rake pkg:aux'")
+      on(host, "#{run_cmd} 'cd #{local_basedir}; bundle exec rake pkg:aux'")
     end
   end
 end
