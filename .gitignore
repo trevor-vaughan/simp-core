@@ -5,6 +5,7 @@
 .vagrant/
 Gemfile.lock
 Puppetfile.lock
+ISO
 SIMP_ISO
 SIMP_ISO_STAGING
 build/**/DVD_Overlay

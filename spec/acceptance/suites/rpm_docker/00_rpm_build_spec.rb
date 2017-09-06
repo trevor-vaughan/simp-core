@@ -61,20 +61,18 @@ describe 'RPM build' do
       on(host, "#{run_cmd} 'cd #{local_basedir}; bundle update'")
     end
 
-    it 'should be able to build all modules ' do
-      on(host, "#{run_cmd} 'cd #{local_basedir}; bundle exec rake pkg:modules'")
-    end
+    if host.file_exist?('/simp-core/ISO')
+      it 'should be able to build the ISO' do
+        on(host, "#{run_cmd} 'cd #{local_basedir}; bundle exec rake build:auto[ISO]'")
+      end
+    else
+      it 'should be able to build all modules ' do
+        on(host, "#{run_cmd} 'cd #{local_basedir}; bundle exec rake pkg:modules'")
+      end
 
-    it 'should be able to build simp ' do
-      on(host, "#{run_cmd} 'cd #{local_basedir}; bundle exec rake pkg:simp'")
-    end
-
-    it 'should be able to build simp_cli ' do
-      on(host, "#{run_cmd} 'cd #{local_basedir}; bundle exec rake pkg:simp_cli'")
-    end
-
-    it 'should be able to build aux packages ' do
-      on(host, "#{run_cmd} 'cd #{local_basedir}; bundle exec rake pkg:aux'")
+      it 'should be able to build aux packages ' do
+        on(host, "#{run_cmd} 'cd #{local_basedir}; bundle exec rake pkg:aux'")
+      end
     end
   end
 end
