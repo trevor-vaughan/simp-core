@@ -18,7 +18,7 @@ HOSTS:
       - 'echo -e "[legacy]\nname=Legacy\nbaseurl=http://vault.centos.org/7.0.1406/os/x86_64\ngpgkey=https://www.centos.org/keys/RPM-GPG-KEY-CentOS-7\ngpgcheck=1" > /etc/yum.repos.d/legacy.repo'
 
       # Downgrade ALL THE THINGS!!!
-      - 'yum downgrade -y *'
+      - 'cd /root; yum downgrade -y *'
 
       # Getting rid of package conflicts
       - 'yum remove -y fakesystemd'
@@ -87,7 +87,7 @@ HOSTS:
       - 'echo -e "[legacy]\nname=Legacy\nbaseurl=http://vault.centos.org/6.6/os/x86_64\ngpgkey=https://www.centos.org/keys/RPM-GPG-KEY-CentOS-6\ngpgcheck=1" > /etc/yum.repos.d/legacy.repo'
 
       # Downgrade ALL THE THINGS!!!
-      - 'yum downgrade -y *'
+      - 'cd /root; yum downgrade -y *'
 
       # Getting rid of package conflicts
       - '\cp -a /etc/ssh /root'
