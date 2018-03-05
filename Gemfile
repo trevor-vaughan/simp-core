@@ -45,7 +45,8 @@ gem 'simp-rake-helpers', ENV.fetch('SIMP_RAKE_HELPERS_VERSION', '~> 5.0')
 group :system_tests do
   gem 'beaker'
   gem 'beaker-rspec'
-  gem 'simp-beaker-helpers', ENV.fetch('SIMP_BEAKER_HELPERS_VERSION', '~> 1.9')
+  #gem 'simp-beaker-helpers', ENV.fetch('SIMP_BEAKER_HELPERS_VERSION', '~> 1.9')
+  gem 'simp-beaker-helpers', :path => '/home/thanos/Work/SIMP/rubygem-simp-beaker-helpers'
 end
 
 # nice-to-have gems (for debugging)

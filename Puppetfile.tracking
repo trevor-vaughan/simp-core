@@ -374,8 +374,10 @@ mod 'simp-postfix',
   :tag => '5.0.2'
 
 mod 'simp-pupmod',
-  :git => 'https://github.com/simp/pupmod-simp-pupmod',
-  :tag => '7.4.1'
+  :git => 'https://github.com/trevor-vaughan/pupmod-simp-pupmod',
+  :branch => 'SIMP-4510'
+  #:git => 'https://github.com/simp/pupmod-simp-pupmod',
+  #:tag => '7.4.1'
 
 mod 'simp-resolv',
   :git => 'https://github.com/simp/pupmod-simp-resolv',
@@ -394,8 +396,10 @@ mod 'simp-selinux',
   :tag => '2.1.1'
 
 mod 'simp-simp',
-  :git => 'https://github.com/simp/pupmod-simp-simp',
-  :tag => '4.3.0'
+  :git => 'https://github.com/trevor-vaughan/pupmod-simp-simp',
+  :branch => 'SIMP-4446'
+  #:git => 'https://github.com/simp/pupmod-simp-simp',
+  #:tag => '4.3.0'
 
 mod 'simp-simpcat',
   :git => 'https://github.com/simp/pupmod-simp-simpcat',
