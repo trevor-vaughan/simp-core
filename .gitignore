@@ -1,5 +1,6 @@
 .*.sw?
 .bundle/
+.gource/
 .r10k_cache/
 .tmp/
 tmp/

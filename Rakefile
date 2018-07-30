@@ -41,7 +41,7 @@ namespace :deps do
     r10k_issues = Parallel.map(
       Array(r10k_helper.modules),
         :in_processes => get_cpu_limit,
-        :progress => 'Dependency Removal'
+        :progress     => 'Dependency Removal'
     ) do |mod|
       Dir.chdir(base_dir) do
         FileUtils.rm_rf(mod[:path])
@@ -51,6 +51,150 @@ namespace :deps do
     if args[:remove_cache]
       cache_dir = File.join(base_dir, '.r10k_cache')
       FileUtils.rm_rf(cache_dir)
+    end
+  end
+end
+
+namespace :simp do
+  CLOBBER.include('.gource')
+
+  task :gource, [:render, :resolution, :tmpdir] do |t,args|
+    args.with_defaults(:tmpdir => '.gource')
+    tmpdir = args[:tmpdir]
+
+    args.with_defaults(:render => 'false')
+    render = (args[:render] == 'true') ? true : false
+    render_file = 'gource.webm'
+    ffmpeg = "ffmpeg -y -r 60 -f image2pipe -vcodec ppm -i - -vcodec libvpx -b:v 10000K #{File.join(tmpdir, render_file)}"
+
+    args.with_defaults(:resolution => '1920x1080')
+    resolution = args[:resolution]
+
+    start_date = '2015-05-12 22:20:30'
+
+    logo_file = 'src/doc/docs/images/SIMP_Logo.png'
+
+    collect_file = 'full.gource'
+
+    moduledirs_to_include = [
+      'src',
+      'src/puppet/modules'
+    ]
+
+    file_extensions = [
+      'e?pp',
+      'e?rb',
+      'json',
+      'md',
+      'py',
+      'rst',
+      'ya?ml'
+    ]
+
+    FileUtils.rm_rf(tmpdir) if File.directory?(tmpdir)
+
+    FileUtils.mkdir(tmpdir)
+
+    r10k_helper = R10KHelper.new('Puppetfile.tracking')
+
+    gource_cmdline = "gource -#{resolution} " +
+      '--auto-skip-seconds 1 ' +
+      '-seconds-per-day 0.025 ' +
+      '--camera-mode overview ' +
+      '--file-idle-time 0 ' +
+      '--max-file-lag 0.1 ' +
+      '--disable-bloom ' +
+      '--date-format "%Y" ' +
+      '--hide users,dirnames,mouse,filenames ' +
+      '--title "Code Over Time" '
+
+    if File.exist?(logo_file)
+      gource_cmdline += "--logo #{logo_file} "
+    end
+
+    if render
+      gource_cmdline += '-o - '
+    end
+
+    gource_cmdline += File.join(tmpdir, collect_file)
+
+    need_deps_checkout = false
+
+    modules_to_process = r10k_helper.modules.select do |mod|
+      do_include = false
+
+      moduledirs_to_include.each do |mod_dir|
+        if %r(/#{mod_dir}$).match?(mod[:module_dir])
+          do_include = true
+
+          need_deps_checkout = true unless File.directory?(mod[:path])
+
+          break
+        end
+      end
+
+      do_include
+    end
+
+    if need_deps_checkout
+      Rake::Task['deps:checkout'].invoke
+    end
+
+    Parallel.map(
+      Array(modules_to_process),
+        :in_processes => get_cpu_limit,
+        :progress     => 'Gource Analysis'
+    ) do |mod|
+      sub_dir = mod[:path].split(Dir.pwd).last[1..-1]
+      outfile = File.join(tmpdir, mod[:r10k_module].title) + '.txt'
+
+      %x{gource --start-date '#{start_date}' --output-custom-log #{outfile} #{mod[:path]}}
+
+      file_content = File.read(outfile).lines
+
+      file_content.delete_if do |line|
+        match = false
+
+        file_extensions.each do |ext|
+          if %r(\.#{ext}$).match?(line)
+            match = true
+            break
+          end
+        end
+
+        !match
+      end
+
+      file_content.map! do |line|
+        # Timestamp, Username, Action, Path
+        parts = line.split('|')
+
+        # Update the Path so that there is no overlap
+        parts[-1] = File.join(sub_dir, parts.last)
+
+        parts.join('|')
+      end
+
+      if file_content.empty?
+        FileUtils.rm(outfile)
+      else
+        File.open(outfile, 'w') do |fh|
+          fh.puts(file_content.join)
+        end
+      end
+    end
+
+    # This makes things too unreadable
+    #%x{gource --output-custom-log #{File.join(tmpdir, 'simp-core.txt')}}
+
+    Dir.chdir(tmpdir) do
+      %x{cat *.txt | sort -n > #{collect_file}}
+    end
+
+    if render
+      %x{#{gource_cmdline} | #{ffmpeg}}
+    else
+      puts("Run with: #{gource_cmdline}")
     end
   end
 end
