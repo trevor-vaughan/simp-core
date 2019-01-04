@@ -110,17 +110,28 @@ describe 'compliance reporting and enforcement' do
           expect(JSON.load(File.read(report_file))['fqdn']).to eq(fqdn)
         end
 
-        it 'should have a passing compliance profile report' do
+        it 'should have a valid compliance profile report' do
           compliance_report = JSON.load(File.read(report_file))
           expect(compliance_report['compliance_profiles']).to_not be_empty
           expect(compliance_report['compliance_profiles'][compliance_profile]).to_not be_empty
           expect(compliance_report['compliance_profiles'][compliance_profile]['summary']).to_not be_empty
+          expect(
+            compliance_report['compliance_profiles'][compliance_profile]['summary']['percent_compliant']
+          ).to be_an(Integer)
+        end
+
+        it 'should have a passing compliance profile report' do
+          puts 'Parameter Compliance: ' +
+            compliance_report['compliance_profiles'][compliance_profile]['summary']['percent_compliant'].to_s +
+            '%'
 
           # We need to make sure this is true in the future but the tests
           # successfully prove that the subsystem is working properly across
           # the board.
-          #
-          # expect(compliance_report['compliance_profiles'][compliance_profile]['summary']['percent_compliant']).to be == 100
+          skip 'Full validation with Compliance Engine 2.0'
+          expect(
+            compliance_report['compliance_profiles'][compliance_profile]['summary']['percent_compliant']
+          ).to be == 100
         end
       end
     end
