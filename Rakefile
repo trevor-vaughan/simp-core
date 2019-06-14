@@ -99,23 +99,34 @@ def load_modules(puppetfile)
 
   modules = {}
 
-  r10k.modules.each do |mod|
+  Parallel.map(
+    r10k.modules,
+    :in_processes => get_cpu_limit,
+    finish: -> (item, i, result) {
+      modules.merge!(result) if result
+    }
+  ) do |mod|
     # Skip anything that's not pinned
 
     next unless mod.instance_variable_get('@args').keys.include?(:tag)
 
-    modules[mod.name] = {
-      :id          => mod.name,
-      :owner       => mod.owner,
-      :path        => mod.path.to_s,
-      :remote      => mod.repo.instance_variable_get('@remote'),
-      :desired_ref => mod.desired_ref,
-      :version     => mod.desired_ref,
-      :git_source  => mod.repo.repo.origin,
-      :git_ref     => mod.repo.head,
-      :module_dir  => mod.basedir,
-      :r10k_module => mod,
-      :r10k_cache  => mod.repo.repo.cache_repo
+    {
+      mod.name => {
+        :id          => mod.name,
+        :owner       => mod.owner,
+        :path        => mod.path.to_s,
+        :remote      => mod.repo.instance_variable_get('@remote'),
+        :desired_ref => mod.desired_ref,
+        :version     => mod.desired_ref,
+        :git_source  => mod.repo.repo.origin,
+        :git_ref     => mod.repo.head,
+        :module_dir  => mod.basedir,
+        :r10k_cache  => mod.repo.repo.cache_repo,
+        # This doesn't play well with parallel but leaving it for future
+        # reference/debugging.
+        #
+        #:r10k_module => mod
+      }
     }
   end
 
@@ -300,5 +311,149 @@ namespace :puppetfile do
     modules.each do |id, mod|
       print_module_status(mod)
     end
+  end
+
+  task :acceptance_test_count, [:puppetfile] do |t,args|
+    args.with_defaults(:puppetfile => 'tracking')
+
+    puppetfile = 'Puppetfile.' + args[:puppetfile]
+
+    modules = load_modules(puppetfile)
+
+    test_count = {
+      :acceptance_total => 0,
+      :extrapolated_total => 0
+    }
+
+    Parallel.map(
+      modules,
+      #:in_processes => get_cpu_limit,
+      :in_processes => 1,
+      :progress => "Acceptance Test Count",
+      finish: -> (item, i, result){
+        if result
+          id,mod = item
+          test_count["#{mod[:owner]}-#{id}"] ||= {}
+          test_count["#{mod[:owner]}-#{id}"][:acceptance] ||= 0
+          test_count["#{mod[:owner]}-#{id}"][:acceptance_extrapolated] ||= 0
+
+          test_count[:acceptance_total] += result[:base]
+          test_count["#{mod[:owner]}-#{id}"][:acceptance] += result[:base]
+
+          test_count[:extrapolated_total] += result[:extrapolated]
+          test_count["#{mod[:owner]}-#{id}"][:acceptance_extrapolated] += result[:extrapolated]
+        end
+      }
+    ) do |id, mod|
+      next unless mod[:owner] == 'simp'
+      next unless File.directory?(File.join(mod[:path], 'spec', 'acceptance'))
+
+      num_examples = {
+        :base => 0,
+        :extrapolated => 0
+      }
+
+      Dir.chdir(mod[:path]) do
+        Find.find('spec/acceptance') do |path|
+          filename = File.basename(path)
+
+          if filename =~ /_spec.rb$/
+            num_examples[:base] += File.read(path).lines.grep(/^\s*it\s+(({|do)|.+\s+do)\s*$/).count
+
+            # Test count extrapolation
+            Dir.chdir(File.dirname(path)) do
+              nodeset = nil
+              if File.exist?(File.join('nodesets','default.yml'))
+                nodeset = File.join('nodesets','default.yml')
+              elsif File.exist?(File.join('..','..','nodesets','default.yml'))
+                nodeset = File.join('..','..','nodesets','default.yml')
+              end
+
+              if nodeset
+                begin
+                  nodeset_data = YAML.load(ERB.new(File.read(nodeset), nil, '-').result(binding))
+
+                  if nodeset_data['HOSTS']
+                    num_examples[:extrapolated] = num_examples[:base] * nodeset_data['HOSTS'].keys.count
+                  end
+                rescue
+                  #noop
+                end
+              end
+            end
+          end
+        end
+      end
+
+      num_examples
+    end
+
+    puts ''
+    puts 'Total Base Acceptance Tests: ' + test_count[:acceptance_total].to_s
+    puts 'Total Acceptance Tests with Nodeset Extrapolation: ' + test_count[:extrapolated_total].to_s
+  end
+
+  task :unit_test_count, [:puppetfile] do |t,args|
+    num_match_regex = %r{(?<num_examples>\d+) examples}
+
+    args.with_defaults(:puppetfile => 'tracking')
+
+    puppetfile = 'Puppetfile.' + args[:puppetfile]
+
+    modules = load_modules(puppetfile)
+
+    test_count = {
+      :unit_total => 0
+    }
+
+    modules.each do |id, mod|
+      next unless mod[:owner] == 'simp'
+      next unless File.directory?(File.join(mod[:path], 'spec'))
+
+      Dir.chdir(mod[:path]) do
+        if File.directory?('spec')
+          print "Processing: #{mod[:owner]}-#{id}".ljust(55,' ') + "\r"
+          $stdout.flush
+
+          spec_tests = []
+          Find.find('spec') do |path|
+            filename = File.basename(path)
+
+            Find.prune if filename == 'acceptance'
+
+            if filename =~ /_spec.rb$/
+              spec_tests << path
+            end
+          end
+
+          test_count["#{mod[:owner]}-#{id}"] ||= {}
+          test_count["#{mod[:owner]}-#{id}"][:unit] ||= 0
+
+          Parallel.map(
+            spec_tests,
+            :in_processes => get_cpu_limit,
+            :progress => "#{mod[:owner]}-#{id}",
+            finish: -> (item, i, result){
+              test_count[:unit_total] += result
+              test_count["#{mod[:owner]}-#{id}"][:unit] += result
+            }
+          ) do |path|
+            num_examples = 0
+
+            ::Bundler.with_clean_env do
+              output = %x{ bundle exec rspec -f d --dry-run #{path} 2>&1}
+              if matches = output.match(num_match_regex)
+                num_examples = matches[:num_examples].to_i if matches[:num_examples]
+              end
+            end
+
+            num_examples
+          end
+        end
+      end
+    end
+
+    puts ''
+    puts 'Total Unit Tests: ' + test_count[:unit_total].to_s
   end
 end
